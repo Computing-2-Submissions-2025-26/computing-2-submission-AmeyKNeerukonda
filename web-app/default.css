@@ -1,0 +1,185 @@
+/* Prevent page scrolling to keep the canvas locked in the viewport */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    overflow: hidden;
+    font-family: sans-serif;
+}
+
+/* Base container acts as the anchor for absolute positioning */
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-color: #1a1a1a;
+}
+
+/* * The menu layer sits above everything (z-index 20) and uses 
+ * flexbox to centre the setup forms on the screen.
+ */
+#menu-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+    color: #fff;
+}
+
+.menu-title {
+    font-size: 64px;
+    margin-bottom: 40px;
+    color: #f1c40f;
+    text-shadow: 2px 2px 4px #000;
+    letter-spacing: 5px;
+}
+
+.menu-settings {
+    display: flex;
+    gap: 60px;
+    margin-bottom: 40px;
+}
+
+/* Styling for the individual player input boxes */
+.player-settings {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #222;
+    padding: 20px 30px;
+    border: 2px solid #555;
+    border-radius: 10px;
+}
+
+.player-settings h3 {
+    margin-top: 0;
+    color: #fff;
+}
+
+.player-settings input[type="text"] {
+    margin-bottom: 15px;
+    padding: 8px;
+    font-size: 16px;
+    text-align: center;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-weight: bold;
+}
+
+/* CSS Grid organises the colour swatches cleanly into a 2x5 array */
+.color-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 30px);
+    gap: 6px;
+}
+
+/* Interactive elements use hover and transform scales for feedback */
+.swatch {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    box-sizing: border-box;
+    transition: transform 0.1s;
+}
+
+.swatch.selected {
+    border: 2px solid #fff;
+    transform: scale(1.15);
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.btn {
+    padding: 12px 24px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    background-color: #d35400;
+    border: 3px solid #f1c40f;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0px 4px 6px rgba(0,0,0,0.5);
+    margin: 5px;
+    pointer-events: auto;
+}
+
+.btn:hover {
+    background-color: #e67e22;
+}
+
+/* * The UI layer sits below the menu but above the canvas.
+ * pointer-events: none ensures mouse drags go straight to the canvas.
+ */
+#ui-layer {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.health-wrapper {
+    position: absolute;
+    top: 20px;
+    width: 200px;
+}
+
+.health-wrapper.left {
+    left: 20px;
+}
+
+.health-wrapper.right {
+    right: 20px;
+    text-align: right;
+}
+
+.health-container {
+    width: 100%;
+    height: 20px;
+    background-color: #555;
+    border: 2px solid #fff;
+    margin-bottom: 8px;
+}
+
+/* CSS transitions provide smooth interpolation when HP drops */
+.health-bar {
+    height: 100%;
+    background-color: #2ecc71;
+    width: 100%;
+    transition: width 0.3s ease-in-out;
+}
+
+.player-name {
+    color: #fff;
+    font-weight: bold;
+    font-size: 18px;
+    text-shadow: 1px 1px 2px #000;
+}
+
+/* Menu options presented dynamically to the winner */
+#game-over-controls {
+    display: none;
+    position: absolute;
+    top: 150px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    pointer-events: auto;
+    text-align: center;
+}
+
+#game-canvas {
+    display: block;
+}

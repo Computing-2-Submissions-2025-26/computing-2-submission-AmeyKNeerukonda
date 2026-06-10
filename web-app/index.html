@@ -1,9 +1,55 @@
-<!-- In HTML Comments are written like this -->
-<!-- They can all be removed for your apps -->
-<!doctype html> <!-- This first line tells browsers to expect modern standard html 5 -->
-<html lang="en-gb"> <!-- This is indicates the page is written in British English, useful for accessibility -->
-<meta charset="utf-8"> <!-- This indicates how the file is encoded. utf-8 is standard -->
-<title>Your Web-app Title</title> <!-- All pages need a title, this will be displayed in the browser's title bar -->
-<link rel="stylesheet" href="default.css"> <!-- Import style sheet – default.css -->
-<link rel="icon" href="./assets/favicon.png"> <!-- Import 'Favorites Icon' – favicon.png -->
-<script type="module" src="main.js"></script> <!-- Load the main script. Must be type="module". Have only one of these -->
+<!doctype html>
+<html lang="en-gb">
+<head>
+    <meta charset="utf-8">
+    <title>Tanks - Computing 2</title>
+    <link rel="stylesheet" href="default.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ramda/0.29.1/ramda.min.js"></script>
+    
+    <script type="module" src="main.js"></script> 
+</head>
+<body>
+    <div id="game-container">
+        
+        <div id="menu-layer">
+            <h1 class="menu-title">TANKS</h1>
+            <div class="menu-settings">
+                <div class="player-settings">
+                    <h3>Player 1</h3>
+                    <input type="text" id="p1-name-input" value="Player 1">
+                    <div class="color-grid" id="p1-colors"></div>
+                </div>
+                <div class="player-settings">
+                    <h3>Player 2</h3>
+                    <input type="text" id="p2-name-input" value="Player 2">
+                    <div class="color-grid" id="p2-colors"></div>
+                </div>
+            </div>
+            <button id="start-game-btn" class="btn">Start Game</button>
+        </div>
+
+        <div id="ui-layer">
+            <div class="health-wrapper left">
+                <div class="health-container">
+                    <div id="p1-health-bar" class="health-bar"></div>
+                </div>
+                <div id="p1-name-display" class="player-name">Player 1</div>
+            </div>
+            <div class="health-wrapper right">
+                <div class="health-container">
+                    <div id="p2-health-bar" class="health-bar"></div>
+                </div>
+                <div id="p2-name-display" class="player-name">Player 2</div>
+            </div>
+            
+            <div id="game-over-controls">
+                <button id="play-again-btn" class="btn">Play Again</button>
+                <button id="return-menu-btn" class="btn">Return to Menu</button>
+            </div>
+        </div>
+        
+        <canvas id="game-canvas"></canvas>
+    </div>
+</body>
+</html>
