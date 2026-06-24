@@ -1,10 +1,11 @@
+/*jslint browser*/
+
 // UI CONTROLLER
 // Orchestrates the DOM, renders the canvas, and manages user input.
 // Visual logic (like particles) lives here to keep the game module pure.
 // -----------------------------------------------------------------------------
 
 import Game from "./game.js";
-
 import R from "./ramda.js";
 
 let canvas = document.getElementById("game-canvas");
@@ -30,20 +31,19 @@ let p2SelectedColor = "#e74c3c";
 function buildColorGrid(containerId, isP1) {
     let container = document.getElementById(containerId);
 
-    // Use Ramda to iterate over the palette array
     R.forEach(function (color) {
-        let swatch = document.createElement("div");
+        let swatch = document.createElement("button");
         swatch.className = "swatch";
         swatch.style.backgroundColor = color;
+        swatch.setAttribute("aria-label", "Select colour " + color);
 
-        let isP1Match = (isP1 && color === p1SelectedColor);
-        let isP2Match = (!isP1 && color === p2SelectedColor);
+        let isP1Match = isP1 && color === p1SelectedColor;
+        let isP2Match = !isP1 && color === p2SelectedColor;
 
         if (isP1Match || isP2Match) {
             swatch.classList.add("selected");
         }
 
-        // Binds an event listener to update selection states
         swatch.addEventListener("click", function () {
             Array.from(container.children).forEach(function (c) {
                 c.classList.remove("selected");
@@ -62,7 +62,6 @@ function buildColorGrid(containerId, isP1) {
 buildColorGrid("p1-colors", true);
 buildColorGrid("p2-colors", false);
 
-// Base configuration passed into the pure module upon initialisation
 let gameConfig = {
     p1Color: p1SelectedColor,
     p1Name: "Player 1",
@@ -70,7 +69,6 @@ let gameConfig = {
     p2Name: "Player 2"
 };
 
-// Application State tracking
 let gameState = Game.createInitialState(gameConfig);
 let cameraX = 0;
 let isDragging = false;
@@ -83,13 +81,14 @@ let currentMouse = {
     y: 0
 };
 
-// Distinct arrays to hold visual-only entities that do not affect physics
+let p1HasFired = false;
+let p2HasFired = false;
+
 let particles = [];
 let windParticles = [];
 let smokeParticles = [];
 let lastProjectile = null;
 
-/** Procedurally calculates background trees for the rendering loop */
 function generateTrees() {
     let tArray = [];
     let tX = -1000;
@@ -108,7 +107,6 @@ function generateTrees() {
             x: tX,
             y: Game.GROUND_Y
         });
-        // Introduce randomness to spacing
         tX += Math.random() * 150 + 60;
     }
     return tArray;
@@ -116,7 +114,6 @@ function generateTrees() {
 
 let trees = generateTrees();
 
-// DOM References
 let menuLayer = document.getElementById("menu-layer");
 let uiLayer = document.getElementById("ui-layer");
 let gameOverControls = document.getElementById("game-over-controls");
@@ -131,12 +128,10 @@ let playAgainBtn = document.getElementById("play-again-btn");
 let returnMenuBtn = document.getElementById("return-menu-btn");
 let startGameBtn = document.getElementById("start-game-btn");
 
-/** Maps the pure GameState data structure into actual DOM element styles */
 function updateDOM() {
     p1HealthBar.style.width = String(gameState.players[0].hp) + "%";
     p2HealthBar.style.width = String(gameState.players[1].hp) + "%";
 
-    // Reveal restart options only when the camera rests on the winner
     if (gameState.phase === "gameover" && !isGameOverLingering) {
         if (!isCameraMoving) {
             gameOverControls.style.display = "block";
@@ -146,7 +141,6 @@ function updateDOM() {
     }
 }
 
-// Applies configurations from the form and begins the match
 startGameBtn.addEventListener("click", function () {
     gameConfig = {
         p1Color: p1SelectedColor,
@@ -156,15 +150,15 @@ startGameBtn.addEventListener("click", function () {
     };
     gameState = Game.createInitialState(gameConfig);
 
-    // Clear visual effects arrays
     particles = [];
     smokeParticles = [];
     lastProjectile = null;
     isTimeoutRunning = false;
     gameOverProcessed = false;
     isGameOverLingering = false;
+    p1HasFired = false;
+    p2HasFired = false;
 
-    // Toggle layer visibility
     menuLayer.style.display = "none";
     uiLayer.style.display = "block";
     p1NameDisplay.innerText = gameConfig.p1Name;
@@ -173,7 +167,6 @@ startGameBtn.addEventListener("click", function () {
     updateDOM();
 });
 
-// Resets logic for a rematch using identical configurations
 playAgainBtn.addEventListener("click", function () {
     gameState = Game.createInitialState(gameConfig);
     particles = [];
@@ -183,17 +176,17 @@ playAgainBtn.addEventListener("click", function () {
     gameOverProcessed = false;
     isGameOverLingering = false;
     gameOverControls.style.display = "none";
+    p1HasFired = false;
+    p2HasFired = false;
     updateDOM();
 });
 
-// Escapes the match to select new names and colours
 returnMenuBtn.addEventListener("click", function () {
     uiLayer.style.display = "none";
     menuLayer.style.display = "flex";
     gameOverControls.style.display = "none";
 });
 
-/** Maps raw window interaction coords into the canvas element space */
 function getMousePos(event) {
     let rect = canvas.getBoundingClientRect();
     return {
@@ -202,10 +195,8 @@ function getMousePos(event) {
     };
 }
 
-/** Instantiates purely visual explosion entities at a coordinate */
 function spawnExplosion(x, y, hitTank) {
     let i = 0;
-    // Differentiate impacts visually for better user feedback
     let colors = (
         hitTank
         ? ["#e74c3c", "#d35400", "#e67e22", "#f1c40f"]
@@ -215,7 +206,7 @@ function spawnExplosion(x, y, hitTank) {
         let randColor = colors[Math.floor(Math.random() * 4)];
         particles.push({
             color: randColor,
-            life: 1.0, // Represents alpha channel decay
+            life: 1.0,
             radius: Math.random() * 8 + 4,
             vx: (Math.random() - 0.5) * 6,
             vy: (Math.random() - 0.5) * 6,
@@ -226,14 +217,12 @@ function spawnExplosion(x, y, hitTank) {
     }
 }
 
-// User Interaction Hook Listeners
 let container = document.getElementById("game-container");
 
 container.addEventListener("mousedown", function (event) {
     if (menuLayer.style.display !== "none") {
-        return; // Prevent logic updates if the user is in the menu
+        return;
     }
-    // Aims can only begin once the panning camera settles
     if (gameState.phase === "aiming" && !isCameraMoving) {
         isDragging = true;
         currentMouse = getMousePos(event);
@@ -253,38 +242,35 @@ container.addEventListener("mouseup", function (event) {
 
         let activeTank = gameState.players[gameState.turn];
 
-        // Offset the mouse coordinate by camera position to map to world
         let worldMouseX = currentMouse.x + cameraX;
         let dx = activeTank.x - worldMouseX;
-        let dy = (activeTank.y - 18) - currentMouse.y;
+        let dy = activeTank.y - 18 - currentMouse.y;
 
-        // Trigonometric derivation of launch vectors
         let angle = Math.atan2(dy, dx);
-        let dist = Math.sqrt((dx * dx) + (dy * dy));
-
-        // Prevent shots extending past max velocity
+        let dist = Math.sqrt(dx * dx + dy * dy);
         let power = Math.min(dist * 0.2, 38);
 
-        // Feed inputs to functional core to receive the next state tree
+        if (gameState.turn === 0) {
+            p1HasFired = true;
+        } else {
+            p2HasFired = true;
+        }
+
         gameState = Game.fireShot(gameState, angle, power);
     }
 });
 
-/** Resolves interpolation for the viewport dependent on game progression */
 function updateCamera() {
     let targetX = cameraX;
     let speed = 0.04;
 
     let activePlayer = gameState.players[gameState.turn];
-    // Determines spatial buffer to allow the user to drag backward
-    // cleanly without the camera panning away
     let offset = (
         gameState.turn === 0
         ? -(canvas.width * 0.4)
         : -(canvas.width * 0.6)
     );
 
-    // Identifies the subject of interest to frame inside the canvas
     if (gameState.phase === "firing" && gameState.projectile) {
         targetX = gameState.projectile.x - (canvas.width * 0.5);
         speed = 0.15;
@@ -311,7 +297,6 @@ function updateCamera() {
         targetX = activePlayer.x + offset;
     }
 
-    // Prevents camera escaping the logical bounds of the terrain
     let minScroll = 0;
     let maxScroll = Math.max(0, Game.GAME_WIDTH - canvas.width);
 
@@ -321,27 +306,18 @@ function updateCamera() {
     }
 
     targetX = Math.max(minScroll, Math.min(targetX, maxScroll));
-
-    // Flags the camera as moving to block input
     isCameraMoving = Math.abs(targetX - cameraX) > 5;
-
-    // Linear interpolation
     cameraX += (targetX - cameraX) * speed;
 }
 
-/** Draws physical shapes onto the HTML5 Canvas from the logic state */
 function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
-
-    // Abstract the camera by sliding the context backwards
     ctx.translate(-cameraX, 0);
 
-    // Paint the basic terrain block
     ctx.fillStyle = "#27ae60";
     ctx.fillRect(-1000, Game.GROUND_Y, Game.GAME_WIDTH + 2000, canvas.height);
 
-    // Iteratively draw geometric trees constructed during initialisation
     R.forEach(function (t) {
         ctx.fillStyle = "rgba(70, 50, 40, 0.4)";
         ctx.fillRect(
@@ -373,7 +349,6 @@ function render() {
 
     let activeTankId = gameState.players[gameState.turn].id;
 
-    // Draw the tanks mapping attributes from the data structure
     R.forEach(function (player) {
         ctx.fillStyle = player.color;
         ctx.fillRect(player.x - 37, player.y - 18, 75, 27);
@@ -393,11 +368,10 @@ function render() {
         let tAngle = 0;
         let isAiming = gameState.phase === "aiming";
 
-        // Dynamically compute turret rotation visual feedback
         if (isAiming && player.id === activeTankId && isDragging) {
             let mx = currentMouse.x + cameraX;
             let my = currentMouse.y;
-            tAngle = Math.atan2((player.y - 18) - my, player.x - mx);
+            tAngle = Math.atan2(player.y - 18 - my, player.x - mx);
         } else {
             tAngle = (
                 player.id === 1
@@ -414,23 +388,42 @@ function render() {
         ctx.restore();
     }, gameState.players);
 
+    // Render tutorial text for the first round
+    if (gameState.phase === "aiming" && !isCameraMoving && !isDragging) {
+        let activeId = gameState.turn;
+        let isP1First = activeId === 0 && !p1HasFired;
+        let isP2First = activeId === 1 && !p2HasFired;
+
+        if (isP1First || isP2First) {
+            let tutorialTank = gameState.players[activeId];
+            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+            ctx.font = "bold 22px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(
+                "Click and drag to aim",
+                tutorialTank.x,
+                tutorialTank.y - 80
+            );
+        }
+    }
+
     // Renders the prediction trace trajectory line
     if (gameState.phase === "aiming" && isDragging) {
-        let activeTank = gameState.players[gameState.turn];
+        let aimingTank = gameState.players[gameState.turn];
         let wMouseX = currentMouse.x + cameraX;
-        let dx = activeTank.x - wMouseX;
-        let dy = (activeTank.y - 18) - currentMouse.y;
+        let dx = aimingTank.x - wMouseX;
+        let dy = aimingTank.y - 18 - currentMouse.y;
 
         let angle = Math.atan2(dy, dx);
-        let dist = Math.sqrt((dx * dx) + (dy * dy));
+        let dist = Math.sqrt(dx * dx + dy * dy);
         let power = Math.min(dist * 0.2, 38);
 
         ctx.fillStyle = "white";
         let i = 1;
         while (i <= 7) {
-            let distance = i * (power * 1.5);
-            let dotX = activeTank.x + Math.cos(angle) * distance;
-            let dotY = (activeTank.y - 18) + Math.sin(angle) * distance;
+            let distance = i * power * 1.5;
+            let dotX = aimingTank.x + Math.cos(angle) * distance;
+            let dotY = aimingTank.y - 18 + Math.sin(angle) * distance;
             ctx.beginPath();
             ctx.arc(dotX, dotY, 3, 0, Math.PI * 2);
             ctx.fill();
@@ -451,7 +444,6 @@ function render() {
         ctx.fill();
     }
 
-    // Isolate rendering side-effects for visual systems via mapping arrays
     R.forEach(function (p) {
         ctx.globalAlpha = Math.max(0, p.life);
         ctx.fillStyle = p.color;
@@ -480,9 +472,8 @@ function render() {
     }, windParticles);
 
     ctx.lineWidth = 1;
-    ctx.restore(); // Return context position to overlay standard UI items
+    ctx.restore();
 
-    // Top-centre game feedback telemetry
     ctx.font = "bold 20px sans-serif";
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
@@ -496,7 +487,6 @@ function render() {
     }
     ctx.fillText(windText, canvas.width * 0.5, 40);
 
-    // Overlay post-match text onto the view
     if (gameState.phase === "gameover" && !isGameOverLingering) {
         ctx.fillStyle = "gold";
         ctx.font = "bold 80px sans-serif";
@@ -519,9 +509,7 @@ function render() {
     }
 }
 
-/** Recursively computes loop steps for logic modules and UI systems */
 function loop() {
-    // Computes independent kinematic changes for explosion shrapnel
     R.forEach(function (p) {
         p.x += p.vx;
         p.y += p.vy;
@@ -529,12 +517,10 @@ function loop() {
         p.life -= 0.02;
     }, particles);
 
-    // Ramda filtering garbage collects arrays functionally
     particles = R.filter(function (p) {
         return p.life > 0;
     }, particles);
 
-    // Randomised generation of structural damage indicators
     R.forEach(function (player) {
         let damage = 100 - player.hp;
         if (damage > 0) {
@@ -566,7 +552,6 @@ function loop() {
         return p.life > 0;
     }, smokeParticles);
 
-    // Determine the density of wind traces algorithmically
     let targetWindCount = Math.abs(gameState.wind) * 6;
     let shades = [
         "160, 160, 160",
@@ -591,7 +576,6 @@ function loop() {
         windParticles.splice(targetWindCount);
     }
 
-    // Pan wind streams horizontally to imply velocity and wrap off-screen
     R.forEach(function (wp) {
         let actualSpeed = gameState.wind * wp.speedMultiplier * 0.8;
         wp.x += actualSpeed;
@@ -608,7 +592,6 @@ function loop() {
         }
     }, windParticles);
 
-    // Process the functional game API call sequentially
     if (gameState.phase === "firing") {
         lastProjectile = {
             x: gameState.projectile.x,
@@ -617,11 +600,10 @@ function loop() {
 
         gameState = Game.updatePhysics(gameState);
 
-        // Visual consequence of phase alterations
         if (gameState.phase !== "firing") {
             let inBounds = (
-                lastProjectile.x >= -1000 &&
-                lastProjectile.x <= Game.GAME_WIDTH + 1000
+                lastProjectile.x >= -1000
+                && lastProjectile.x <= Game.GAME_WIDTH + 1000
             );
 
             if (inBounds) {
@@ -645,7 +627,6 @@ function loop() {
         updateDOM();
     }
 
-    // Handles logic execution delays using setTimeout
     if (gameState.phase === "transitioning" && !isTimeoutRunning) {
         isTimeoutRunning = true;
         window.setTimeout(function () {
@@ -655,7 +636,6 @@ function loop() {
         }, 1500);
     }
 
-    // Ensures we delay showing menu until the explosion animation resolves
     if (gameState.phase === "gameover" && !gameOverProcessed) {
         gameOverProcessed = true;
         isGameOverLingering = true;
@@ -665,7 +645,6 @@ function loop() {
         }, 2000);
     }
 
-    // Triggers updateDOM logic seamlessly if camera completes its target pan
     if (gameState.phase === "gameover" && !isGameOverLingering) {
         let isBtnsHidden = gameOverControls.style.display === "none";
         if (!isCameraMoving && isBtnsHidden) {
@@ -673,7 +652,6 @@ function loop() {
         }
     }
 
-    // Synchronise rendering pipeline to execution frame
     updateCamera();
     render();
     window.requestAnimationFrame(loop);
